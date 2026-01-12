@@ -1,7 +1,7 @@
 // src/services/sheetService.ts
 import { InventoryItem, UsageRecord, ImportRecord } from "../types";
 
-const API_URL = "PASTE_YOUR_WEB_APP_URL_HERE"; // <-- dán URL Web App Apps Script (đuôi /exec)
+const API_URL = "https://script.google.com/macros/s/AKfycbwMA5ydItXS9IjsH2byAN15JuvmWiEbCxAlWQ6rPQfQ-FV_llT1WZ21yemEWbVStSdL/exec"; // <-- dán URL Web App Apps Script (đuôi /exec)
 
 export interface AllDataFromSheet {
   inventory: InventoryItem[];
