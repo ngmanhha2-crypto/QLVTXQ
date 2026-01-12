@@ -164,10 +164,11 @@ export const StockTake: React.FC<StockTakeProps> = ({ inventory, onRecordUsage }
                                             <LucideAlertTriangle className="text-red-600 mt-0.5" size={16} />
                                             <div>
                                                 <p className="text-red-800 font-semibold">Thừa {Math.abs(diff)} {selectedItem.unit}</p>
-                                                <p className="text-red-700 text-xs mt-1">
-                                                    Thực tế {actualQuantity} > Hệ thống {selectedItem.quantity}.
-                                                    <br/>Vui lòng kiểm tra lại phiếu nhập.
-                                                </p>
+                                              <p className="text-red-700 text-xs mt-1">
+  Thực tế {actualQuantity} &gt; Hệ thống {selectedItem.quantity}.
+  <br />Vui lòng kiểm tra lại phiếu nhập.
+</p>
+
                                             </div>
                                         </div>
                                     </div>
