@@ -1,27 +1,44 @@
-import { InventoryItem } from "../types";
+import { InventoryItem, UsageRecord, ImportRecord } from "../types";
 
-const API_URL = "PASTE_YOUR_WEB_APP_URL_HERE"; // <-- dán URL Web App
+const API_URL = "https://script.google.com/macros/s/AKfycbx6laJ5xbpBgqx2GEiav7n6QlRfuar0ONStPuJsfCUJf26cz9jT_8dQ7IlbneXolLNW/exec"; // URL Web App Apps Script
 
-export async function loadInventoryFromSheet(): Promise<InventoryItem[]> {
-  const res = await fetch(`${API_URL}?action=getInventory`);
-  if (!res.ok) {
-    console.error("Lỗi load inventory:", await res.text());
-    throw new Error("Cannot load inventory from Google Sheets");
-  }
-  const data = await res.json();
-  return (data.items || []) as InventoryItem[];
+export interface AllDataFromSheet {
+  inventory: InventoryItem[];
+  usageHistory: UsageRecord[];
+  importHistory: ImportRecord[];
 }
 
-export async function saveInventoryToSheet(inventory: InventoryItem[]): Promise<void> {
-  const res = await fetch(`${API_URL}?action=saveInventory`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ inventory }),
-  });
+// Lấy cả 3 từ Google Sheets
+export async function loadAllFromSheet(): Promise<AllDataFromSheet> {
+  const res = await fetch(`${API_URL}?action=getAll`);
   if (!res.ok) {
-    console.error("Lỗi save inventory:", await res.text());
-    throw new Error("Cannot save inventory to Google Sheets");
+    console.error("Lỗi load ALL từ Sheets:", await res.text());
+    throw new Error("Cannot load data from Google Sheets");
   }
   const data = await res.json();
-  console.log("Đã lưu inventory:", data);
+  return {
+    inventory: (data.inventory || []) as InventoryItem[],
+    usageHistory: (data.usageHistory || []) as UsageRecord[],
+    importHistory: (data.importHistory || []) as ImportRecord[],
+  };
+}
+
+// Lưu cả 3 lên Google Sheets
+export async function saveAllToSheet(
+  inventory: InventoryItem[],
+  usageHistory: UsageRecord[],
+  importHistory: ImportRecord[]
+): Promise<void> {
+  const res = await fetch(`${API_URL}?action=saveAll`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ inventory, usageHistory, importHistory }),
+  });
+
+  if (!res.ok) {
+    console.error("Lỗi save ALL:", await res.text());
+    throw new Error("Cannot save data to Google Sheets");
+  }
+  const data = await res.json();
+  console.log("Đã lưu ALL data:", data);
 }
