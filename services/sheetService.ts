@@ -1,7 +1,7 @@
-// services/sheetService.ts
+// src/services/sheetService.ts
 import { InventoryItem, UsageRecord, ImportRecord } from "../types";
 
-const API_URL = "https://script.google.com/macros/s/AKfycbwMA5ydItXS9IjsH2byAN15JuvmWiEbCxAlWQ6rPQfQ-FV_llT1WZ21yemEWbVStSdL/exec"; // <-- dán URL Web App Apps Script
+const API_URL = "PASTE_YOUR_WEB_APP_URL_HERE"; // <-- dán URL Web App Apps Script (đuôi /exec)
 
 export interface AllDataFromSheet {
   inventory: InventoryItem[];
@@ -9,14 +9,15 @@ export interface AllDataFromSheet {
   importHistory: ImportRecord[];
 }
 
+// Load cả 3: Inventory + UsageHistory + ImportHistory
 export async function loadAllFromSheet(): Promise<AllDataFromSheet> {
   try {
     const res = await fetch(`${API_URL}?action=getAll`);
-    const text = await res.text(); // đọc text trước để dễ debug
+    const text = await res.text();
 
     if (!res.ok) {
-      console.error("Lỗi HTTP từ Apps Script:", res.status, text);
-      // Trả về rỗng nhưng KHÔNG throw -> app vẫn chạy với INITIAL_DATA
+      console.error("Lỗi HTTP khi load ALL từ Sheets:", res.status, text);
+      // Trả về rỗng, app sẽ dùng INITIAL_DATA
       return { inventory: [], usageHistory: [], importHistory: [] };
     }
 
@@ -39,30 +40,24 @@ export async function loadAllFromSheet(): Promise<AllDataFromSheet> {
   }
 }
 
+// Lưu cả 3: Inventory + UsageHistory + ImportHistory
 export async function saveAllToSheet(
   inventory: InventoryItem[],
   usageHistory: UsageRecord[],
   importHistory: ImportRecord[]
 ): Promise<void> {
-  console.log("DEBUG: API_URL =", API_URL);
-
   const res = await fetch(`${API_URL}?action=saveAll`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      inventory,
-      usageHistory,
-      importHistory,
-    }),
+    body: JSON.stringify({ inventory, usageHistory, importHistory }),
   });
 
   const text = await res.text();
 
   if (!res.ok) {
-    console.error("SAVE ERROR:", res.status, text);
+    console.error("Lỗi khi save ALL lên Sheets:", res.status, text);
     throw new Error(`HTTP ${res.status}: ${text}`);
   }
 
-  console.log("SAVE SUCCESS:", text);
+  console.log("Đã lưu ALL data lên Sheets:", text);
 }
-
