@@ -1,6 +1,6 @@
 import { InventoryItem, UsageRecord, ImportRecord } from "../types";
 
-const API_URL = "https://script.google.com/macros/s/XXXXXXXXXXXX/exec"; 
+const API_URL = "https://script.google.com/macros/s/AKfycbwMA5ydItXS9IjsH2byAN15JuvmWiEbCxAlWQ6rPQfQ-FV_llT1WZ21yemEWbVStSdL/exec"; 
 //  ^^^^^^^^^ dán đúng URL Web App Apps Script của bạn vào đây (đuôi /exec)
 
 export interface AllDataFromSheet {
