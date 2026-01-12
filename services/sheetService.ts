@@ -44,18 +44,25 @@ export async function saveAllToSheet(
   usageHistory: UsageRecord[],
   importHistory: ImportRecord[]
 ): Promise<void> {
+  console.log("DEBUG: API_URL =", API_URL);
+
   const res = await fetch(`${API_URL}?action=saveAll`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ inventory, usageHistory, importHistory }),
+    body: JSON.stringify({
+      inventory,
+      usageHistory,
+      importHistory,
+    }),
   });
 
   const text = await res.text();
 
   if (!res.ok) {
-    console.error("Lỗi save ALL lên Apps Script:", res.status, text);
-    throw new Error("Cannot save data to Google Sheets");
+    console.error("SAVE ERROR:", res.status, text);
+    throw new Error(`HTTP ${res.status}: ${text}`);
   }
 
-  console.log("Đã lưu ALL data:", text);
+  console.log("SAVE SUCCESS:", text);
 }
+
