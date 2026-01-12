@@ -1,6 +1,7 @@
+// services/sheetService.ts
 import { InventoryItem, UsageRecord, ImportRecord } from "../types";
 
-const API_URL = "https://script.google.com/macros/s/AKfycbxBwdL1_ix53G8K8xvkQF9H4xaEToLmEIQLqEezRqJ7h4Bx9jwhVmAyLCB8peWbG4Jt/exec"; // URL Web App Apps Script
+const API_URL = "https://script.google.com/macros/s/AKfycbxBwdL1_ix53G8K8xvkQF9H4xaEToLmEIQLqEezRqJ7h4Bx9jwhVmAyLCB8peWbG4Jt/exec"; // <-- dán URL Web App Apps Script
 
 export interface AllDataFromSheet {
   inventory: InventoryItem[];
@@ -8,22 +9,36 @@ export interface AllDataFromSheet {
   importHistory: ImportRecord[];
 }
 
-// Lấy cả 3 từ Google Sheets
 export async function loadAllFromSheet(): Promise<AllDataFromSheet> {
-  const res = await fetch(`${API_URL}?action=getAll`);
-  if (!res.ok) {
-    console.error("Lỗi load ALL từ Sheets:", await res.text());
-    throw new Error("Cannot load data from Google Sheets");
+  try {
+    const res = await fetch(`${API_URL}?action=getAll`);
+    const text = await res.text(); // đọc text trước để dễ debug
+
+    if (!res.ok) {
+      console.error("Lỗi HTTP từ Apps Script:", res.status, text);
+      // Trả về rỗng nhưng KHÔNG throw -> app vẫn chạy với INITIAL_DATA
+      return { inventory: [], usageHistory: [], importHistory: [] };
+    }
+
+    let data: any;
+    try {
+      data = JSON.parse(text);
+    } catch (err) {
+      console.error("Lỗi parse JSON từ Apps Script:", err, text);
+      return { inventory: [], usageHistory: [], importHistory: [] };
+    }
+
+    return {
+      inventory: (data.inventory || []) as InventoryItem[],
+      usageHistory: (data.usageHistory || []) as UsageRecord[],
+      importHistory: (data.importHistory || []) as ImportRecord[],
+    };
+  } catch (err) {
+    console.error("Lỗi fetch tới Apps Script:", err);
+    return { inventory: [], usageHistory: [], importHistory: [] };
   }
-  const data = await res.json();
-  return {
-    inventory: (data.inventory || []) as InventoryItem[],
-    usageHistory: (data.usageHistory || []) as UsageRecord[],
-    importHistory: (data.importHistory || []) as ImportRecord[],
-  };
 }
 
-// Lưu cả 3 lên Google Sheets
 export async function saveAllToSheet(
   inventory: InventoryItem[],
   usageHistory: UsageRecord[],
@@ -35,10 +50,12 @@ export async function saveAllToSheet(
     body: JSON.stringify({ inventory, usageHistory, importHistory }),
   });
 
+  const text = await res.text();
+
   if (!res.ok) {
-    console.error("Lỗi save ALL:", await res.text());
+    console.error("Lỗi save ALL lên Apps Script:", res.status, text);
     throw new Error("Cannot save data to Google Sheets");
   }
-  const data = await res.json();
-  console.log("Đã lưu ALL data:", data);
+
+  console.log("Đã lưu ALL data:", text);
 }
