@@ -69,18 +69,51 @@ export default function App() {
   }, []);
 
   // Sync tất cả lên Google Sheets
-  const syncToGoogleSheets = async () => {
-    try {
-      setIsSyncing(true);
-      await saveAllToSheet(inventory, usageHistory, importHistory);
-      alert('Đã đồng bộ Inventory + UsageHistory + ImportHistory lên Google Sheets.');
-    } catch (err) {
-      console.error(err);
-      alert('Lỗi khi đồng bộ dữ liệu. Vui lòng thử lại.');
-    } finally {
-      setIsSyncing(false);
+const syncToGoogleSheets = async () => {
+  try {
+    setIsSyncing(true);
+
+    console.log("=== SYNC START ===");
+    console.log("Inventory:", inventory);
+    console.log("UsageHistory:", usageHistory);
+    console.log("ImportHistory:", importHistory);
+
+    const res = await fetch(`${API_URL}?action=saveAll`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        inventory,
+        usageHistory,
+        importHistory
+      }),
+    });
+
+    const text = await res.text();  // <--- quan trọng để debug
+
+    if (!res.ok) {
+      console.error("SYNC ERROR: HTTP status", res.status);
+      console.error("SYNC ERROR: response text:", text);
+
+      alert(
+        "Lỗi đồng bộ (HTTP " +
+          res.status +
+          "): " +
+          text.slice(0, 300)
+      );
+      return;
     }
-  };
+
+    console.log("SYNC SUCCESS:", text);
+
+    alert("Đã đồng bộ thành công lên Google Sheets!");
+  } catch (err: any) {
+    console.error("SYNC ERROR:", err);
+    alert("Lỗi khi đồng bộ dữ liệu: " + (err?.message || "Xem Console."));
+  } finally {
+    setIsSyncing(false);
+  }
+};
+
 
   // Cập nhật tồn kho (nhập thêm / bớt)
   const updateStock = (id: string, delta: number) => {
