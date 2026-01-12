@@ -8,7 +8,18 @@ import { Report } from './components/Report';
 import { UsageHistory } from './components/UsageHistory';
 import { AIAssistant } from './components/AIAssistant';
 import { InventoryItem, TabView, UsageRecord, ImportRecord } from './types';
-import { LucideLayoutDashboard, LucidePackage, LucideBot, LucideHistory, LucideClipboardCheck, LucideCalendarRange, LucideFileChartColumn } from 'lucide-react';
+import {
+  LucideLayoutDashboard,
+  LucidePackage,
+  LucideBot,
+  LucideHistory,
+  LucideClipboardCheck,
+  LucideCalendarRange,
+  LucideFileChartColumn
+} from 'lucide-react';
+
+// ⬇️ DÙNG service mới
+import { loadAllFromSheet, saveAllToSheet } from './services/sheetService';
 
 // Mock data for initial load with new categories
 const INITIAL_DATA: InventoryItem[] = [
@@ -24,28 +35,74 @@ const INITIAL_DATA: InventoryItem[] = [
 
 export default function App() {
   const [currentTab, setCurrentTab] = useState<TabView>('dashboard');
-  const [inventory, setInventory] = useState<InventoryItem[]>(INITIAL_DATA);
+
+  const [inventory, setInventory] = useState<InventoryItem[]>([]);
   const [usageHistory, setUsageHistory] = useState<UsageRecord[]>([]);
   const [importHistory, setImportHistory] = useState<ImportRecord[]>([]);
 
-  // Function to update inventory item quantity
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
+
+  // Lần đầu mở app: load cả 3 từ Google Sheets
+  useEffect(() => {
+    (async () => {
+      try {
+        const data = await loadAllFromSheet();
+        let inv = data.inventory;
+        let usage = data.usageHistory || [];
+        let imp = data.importHistory || [];
+
+        // Nếu inventory trống -> dùng dữ liệu mẫu, lưu ngược lên
+        if (!inv || inv.length === 0) {
+          inv = INITIAL_DATA;
+          await saveAllToSheet(inv, usage, imp);
+        }
+
+        setInventory(inv);
+        setUsageHistory(usage);
+        setImportHistory(imp);
+      } catch (err) {
+        console.error(err);
+        setLoadError('Không tải được dữ liệu từ Google Sheets, đang dùng dữ liệu mẫu.');
+        setInventory(INITIAL_DATA);
+        setUsageHistory([]);
+        setImportHistory([]);
+      }
+    })();
+  }, []);
+
+  // Sync tất cả lên Google Sheets
+  const syncToGoogleSheets = async () => {
+    try {
+      setIsSyncing(true);
+      await saveAllToSheet(inventory, usageHistory, importHistory);
+      alert('Đã đồng bộ Inventory + UsageHistory + ImportHistory lên Google Sheets.');
+    } catch (err) {
+      console.error(err);
+      alert('Lỗi khi đồng bộ dữ liệu. Vui lòng thử lại.');
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
+  // Cập nhật tồn kho (nhập thêm)
   const updateStock = (id: string, delta: number) => {
     setInventory(prev => prev.map(item => {
       if (item.id === id) {
         const newQuantity = Math.max(0, item.quantity + delta);
         
-        // Log import if delta > 0
+        // Ghi ImportHistory nếu delta > 0
         if (delta > 0) {
-            const importRecord: ImportRecord = {
-                id: `imp-${Date.now()}`,
-                itemId: item.id,
-                itemName: item.name,
-                quantity: delta,
-                date: new Date().toISOString().split('T')[0],
-                costPerUnit: item.cost,
-                totalCost: item.cost * delta
-            };
-            setImportHistory(prevH => [...prevH, importRecord]);
+          const importRecord: ImportRecord = {
+            id: `imp-${Date.now()}`,
+            itemId: item.id,
+            itemName: item.name,
+            quantity: delta,
+            date: new Date().toISOString().split('T')[0],
+            costPerUnit: item.cost,
+            totalCost: item.cost * delta
+          };
+          setImportHistory(prevH => [...prevH, importRecord]);
         }
         
         return { ...item, quantity: newQuantity };
@@ -56,18 +113,18 @@ export default function App() {
 
   const addItem = (item: InventoryItem) => {
     setInventory(prev => [...prev, item]);
-    // Log initial import
+    // Ghi import ban đầu nếu có sẵn số lượng
     if (item.quantity > 0) {
-        const importRecord: ImportRecord = {
-            id: `imp-init-${Date.now()}`,
-            itemId: item.id,
-            itemName: item.name,
-            quantity: item.quantity,
-            date: new Date().toISOString().split('T')[0],
-            costPerUnit: item.cost,
-            totalCost: item.cost * item.quantity
-        };
-        setImportHistory(prev => [...prev, importRecord]);
+      const importRecord: ImportRecord = {
+        id: `imp-init-${Date.now()}`,
+        itemId: item.id,
+        itemName: item.name,
+        quantity: item.quantity,
+        date: new Date().toISOString().split('T')[0],
+        costPerUnit: item.cost,
+        totalCost: item.cost * item.quantity
+      };
+      setImportHistory(prev => [...prev, importRecord]);
     }
   };
 
@@ -79,7 +136,7 @@ export default function App() {
     setInventory(prev => prev.filter(item => item.id !== id));
   };
 
-  // Record usage: decrease stock and log history
+  // Ghi UsageHistory & trừ kho
   const recordUsage = (itemId: string, quantity: number, date: string) => {
     const item = inventory.find(i => i.id === itemId);
     if (!item) return;
@@ -89,7 +146,6 @@ export default function App() {
       return;
     }
 
-    // Update inventory
     setInventory(prev => prev.map(i => {
       if (i.id === itemId) {
         return { ...i, quantity: i.quantity - quantity };
@@ -97,7 +153,6 @@ export default function App() {
       return i;
     }));
 
-    // Add log
     const newRecord: UsageRecord = {
       id: Date.now().toString(),
       itemId: item.id,
@@ -128,25 +183,25 @@ export default function App() {
         );
       case 'stock-take':
         return (
-            <StockTake 
-                inventory={inventory}
-                onRecordUsage={recordUsage}
-            />
+          <StockTake 
+            inventory={inventory}
+            onRecordUsage={recordUsage}
+          />
         );
       case 'forecast':
         return (
-            <Forecast
-                inventory={inventory}
-                usageHistory={usageHistory}
-            />
+          <Forecast
+            inventory={inventory}
+            usageHistory={usageHistory}
+          />
         );
       case 'report':
         return (
-            <Report 
-                inventory={inventory}
-                usageHistory={usageHistory}
-                importHistory={importHistory}
-            />
+          <Report 
+            inventory={inventory}
+            usageHistory={usageHistory}
+            importHistory={importHistory}
+          />
         );
       case 'usage':
         return <UsageHistory records={usageHistory} />;
@@ -173,12 +228,24 @@ export default function App() {
             {currentTab === 'ai-assistant' && <><LucideBot className="w-5 h-5 text-medical-600"/> Trợ lý AI</>}
           </h1>
           <div className="flex items-center gap-4">
-             <div className="text-sm text-gray-500">
-                Khoa Chẩn Đoán Hình Ảnh
-             </div>
-             <div className="h-8 w-8 rounded-full bg-medical-100 flex items-center justify-center text-medical-600 font-bold border border-medical-200">
-               AD
-             </div>
+            {loadError && (
+              <span className="text-xs text-red-500 max-w-xs">
+                {loadError}
+              </span>
+            )}
+            <button
+              onClick={syncToGoogleSheets}
+              disabled={isSyncing}
+              className="px-3 py-1 rounded-lg text-sm font-medium border border-medical-500 text-medical-600 hover:bg-medical-50 disabled:opacity-60"
+            >
+              {isSyncing ? 'Đang lưu…' : 'Lưu lên Google Sheets'}
+            </button>
+            <div className="text-sm text-gray-500">
+              Khoa Chẩn Đoán Hình Ảnh
+            </div>
+            <div className="h-8 w-8 rounded-full bg-medical-100 flex items-center justify-center text-medical-600 font-bold border border-medical-200">
+              AD
+            </div>
           </div>
         </header>
 
