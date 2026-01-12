@@ -1,7 +1,7 @@
-// src/services/sheetService.ts
 import { InventoryItem, UsageRecord, ImportRecord } from "../types";
 
-const API_URL = "https://script.google.com/macros/s/AKfycbwMA5ydItXS9IjsH2byAN15JuvmWiEbCxAlWQ6rPQfQ-FV_llT1WZ21yemEWbVStSdL/exec"; // <-- dán URL Web App Apps Script (đuôi /exec)
+const API_URL = "https://script.google.com/macros/s/XXXXXXXXXXXX/exec"; 
+//  ^^^^^^^^^ dán đúng URL Web App Apps Script của bạn vào đây (đuôi /exec)
 
 export interface AllDataFromSheet {
   inventory: InventoryItem[];
@@ -9,7 +9,6 @@ export interface AllDataFromSheet {
   importHistory: ImportRecord[];
 }
 
-// Load cả 3: Inventory + UsageHistory + ImportHistory
 export async function loadAllFromSheet(): Promise<AllDataFromSheet> {
   try {
     const res = await fetch(`${API_URL}?action=getAll`);
@@ -17,7 +16,6 @@ export async function loadAllFromSheet(): Promise<AllDataFromSheet> {
 
     if (!res.ok) {
       console.error("Lỗi HTTP khi load ALL từ Sheets:", res.status, text);
-      // Trả về rỗng, app sẽ dùng INITIAL_DATA
       return { inventory: [], usageHistory: [], importHistory: [] };
     }
 
@@ -40,7 +38,6 @@ export async function loadAllFromSheet(): Promise<AllDataFromSheet> {
   }
 }
 
-// Lưu cả 3: Inventory + UsageHistory + ImportHistory
 export async function saveAllToSheet(
   inventory: InventoryItem[],
   usageHistory: UsageRecord[],
