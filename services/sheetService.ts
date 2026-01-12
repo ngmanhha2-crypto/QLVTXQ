@@ -1,6 +1,6 @@
 import { InventoryItem, UsageRecord, ImportRecord } from "../types";
 
-const API_URL = "https://script.google.com/macros/s/AKfycbz3vbxYpGbQf6JfthwDsx4XBPZW97dDyQp_ybt1K9w/dev"; // URL Web App Apps Script
+const API_URL = "https://script.google.com/macros/s/AKfycbxBwdL1_ix53G8K8xvkQF9H4xaEToLmEIQLqEezRqJ7h4Bx9jwhVmAyLCB8peWbG4Jt/exec"; // URL Web App Apps Script
 
 export interface AllDataFromSheet {
   inventory: InventoryItem[];
