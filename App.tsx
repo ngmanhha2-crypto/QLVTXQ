@@ -1,3 +1,4 @@
+// App.tsx
 import React, { useState, useEffect } from 'react';
 import { Sidebar } from './components/Sidebar';
 import { Dashboard } from './components/Dashboard';
@@ -18,10 +19,9 @@ import {
   LucideFileChartColumn
 } from 'lucide-react';
 
-// ⬇️ DÙNG service mới
 import { loadAllFromSheet, saveAllToSheet } from './services/sheetService';
 
-// Mock data for initial load with new categories
+// Dữ liệu mẫu ban đầu
 const INITIAL_DATA: InventoryItem[] = [
   { id: '1', name: 'Phim X-quang 35x43 (Xanh)', category: 'Vật tư y tế', quantity: 150, unit: 'Tấm', minLevel: 200, location: 'Phòng chụp X quang', cost: 50000 },
   { id: '2', name: 'Phim X-quang 24x30 (Xanh)', category: 'Vật tư y tế', quantity: 320, unit: 'Tấm', minLevel: 100, location: 'Phòng chụp X quang', cost: 40000 },
@@ -41,33 +41,30 @@ export default function App() {
   const [importHistory, setImportHistory] = useState<ImportRecord[]>([]);
 
   const [isSyncing, setIsSyncing] = useState(false);
-  const [loadError, setLoadError] = useState<string | null>(null);
 
-  // Lần đầu mở app: load cả 3 từ Google Sheets
+  // Lần đầu mở app: load từ Google Sheets, nếu trống thì dùng INITIAL_DATA
   useEffect(() => {
     (async () => {
-      try {
-        const data = await loadAllFromSheet();
-        let inv = data.inventory;
-        let usage = data.usageHistory || [];
-        let imp = data.importHistory || [];
+      const data = await loadAllFromSheet();
 
-        // Nếu inventory trống -> dùng dữ liệu mẫu, lưu ngược lên
-        if (!inv || inv.length === 0) {
-          inv = INITIAL_DATA;
+      let inv = data.inventory;
+      const usage = data.usageHistory || [];
+      const imp = data.importHistory || [];
+
+      // Nếu inventory sheet trống hoặc load lỗi -> dùng dữ liệu mẫu
+      if (!inv || inv.length === 0) {
+        inv = INITIAL_DATA;
+        // Thử lưu mẫu lên Sheets (nếu lỗi cũng không sao, chỉ log)
+        try {
           await saveAllToSheet(inv, usage, imp);
+        } catch (err) {
+          console.error("Không lưu được INITIAL_DATA lên Sheets:", err);
         }
-
-        setInventory(inv);
-        setUsageHistory(usage);
-        setImportHistory(imp);
-      } catch (err) {
-        console.error(err);
-        setLoadError('Không tải được dữ liệu từ Google Sheets, đang dùng dữ liệu mẫu.');
-        setInventory(INITIAL_DATA);
-        setUsageHistory([]);
-        setImportHistory([]);
       }
+
+      setInventory(inv);
+      setUsageHistory(usage);
+      setImportHistory(imp);
     })();
   }, []);
 
@@ -85,13 +82,12 @@ export default function App() {
     }
   };
 
-  // Cập nhật tồn kho (nhập thêm)
+  // Cập nhật tồn kho (nhập thêm / bớt)
   const updateStock = (id: string, delta: number) => {
     setInventory(prev => prev.map(item => {
       if (item.id === id) {
         const newQuantity = Math.max(0, item.quantity + delta);
-        
-        // Ghi ImportHistory nếu delta > 0
+
         if (delta > 0) {
           const importRecord: ImportRecord = {
             id: `imp-${Date.now()}`,
@@ -104,7 +100,7 @@ export default function App() {
           };
           setImportHistory(prevH => [...prevH, importRecord]);
         }
-        
+
         return { ...item, quantity: newQuantity };
       }
       return item;
@@ -113,7 +109,6 @@ export default function App() {
 
   const addItem = (item: InventoryItem) => {
     setInventory(prev => [...prev, item]);
-    // Ghi import ban đầu nếu có sẵn số lượng
     if (item.quantity > 0) {
       const importRecord: ImportRecord = {
         id: `imp-init-${Date.now()}`,
@@ -157,8 +152,8 @@ export default function App() {
       id: Date.now().toString(),
       itemId: item.id,
       itemName: item.name,
-      quantity: quantity,
-      date: date,
+      quantity,
+      date,
       costPerUnit: item.cost,
       totalCost: item.cost * quantity
     };
@@ -228,11 +223,6 @@ export default function App() {
             {currentTab === 'ai-assistant' && <><LucideBot className="w-5 h-5 text-medical-600"/> Trợ lý AI</>}
           </h1>
           <div className="flex items-center gap-4">
-            {loadError && (
-              <span className="text-xs text-red-500 max-w-xs">
-                {loadError}
-              </span>
-            )}
             <button
               onClick={syncToGoogleSheets}
               disabled={isSyncing}
