@@ -190,7 +190,12 @@ export default function App() {
       case 'report':
         return <Report inventory={inventory} usageHistory={usageHistory} importHistory={importHistory} />;
       case 'usage':
-        return <UsageHistory records={usageHistory} />;
+  return (
+    <UsageHistory
+      usageRecords={usageHistory}
+      importRecords={importHistory}
+    />
+  );
       case 'ai-assistant':
         return <AIAssistant inventory={inventory} />;
       default:
