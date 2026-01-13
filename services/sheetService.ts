@@ -43,9 +43,9 @@ export async function saveAllToSheet(
   usageHistory: UsageRecord[],
   importHistory: ImportRecord[]
 ): Promise<void> {
+  // KHÔNG set Content-Type => trình duyệt tự dùng text/plain (simple request, không preflight)
   const res = await fetch(`${API_URL}?action=saveAll`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ inventory, usageHistory, importHistory }),
   });
 
@@ -58,3 +58,4 @@ export async function saveAllToSheet(
 
   console.log("Đã lưu ALL data lên Sheets:", text);
 }
+
