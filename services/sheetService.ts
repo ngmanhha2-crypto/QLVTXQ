@@ -1,39 +1,61 @@
-const STATE_SHEET = "STATE";
-const STATE_CELL = "A1";
+import { InventoryItem, UsageRecord, ImportRecord } from "../types";
 
-export async function loadAllFromSheet() {
-  return new Promise<any>((resolve, reject) => {
-    google.script.run
-      .withSuccessHandler((data: any) => {
-        if (!data || typeof data !== "object") return resolve({});
-        resolve(data);
-      })
-      .withFailureHandler((err: any) => {
-        console.error("Lỗi loadAllFromSheet:", err);
-        resolve({}); // Không reject → app vẫn chạy
-      })
-      .getState();
-  });
+const API_URL = "https://script.google.com/macros/s/AKfycbybgY5PNAzOTn6gDshZF-Up4m5UyAsO_u2VyNgG6dO0a080gNnae165LsAJSpDM-v6A/exec"; 
+//  ^^^^^^^^^ dán đúng URL Web App Apps Script của bạn vào đây (đuôi /exec)
+
+export interface AllDataFromSheet {
+  inventory: InventoryItem[];
+  usageHistory: UsageRecord[];
+  importHistory: ImportRecord[];
+}
+
+export async function loadAllFromSheet(): Promise<AllDataFromSheet> {
+  try {
+    const res = await fetch(`${API_URL}?action=getAll`);
+    const text = await res.text();
+
+    if (!res.ok) {
+      console.error("Lỗi HTTP khi load ALL từ Sheets:", res.status, text);
+      return { inventory: [], usageHistory: [], importHistory: [] };
+    }
+
+    let data: any;
+    try {
+      data = JSON.parse(text);
+    } catch (err) {
+      console.error("Lỗi parse JSON từ Apps Script:", err, text);
+      return { inventory: [], usageHistory: [], importHistory: [] };
+    }
+
+    return {
+      inventory: (data.inventory || []) as InventoryItem[],
+      usageHistory: (data.usageHistory || []) as UsageRecord[],
+      importHistory: (data.importHistory || []) as ImportRecord[],
+    };
+  } catch (err) {
+    console.error("Lỗi fetch tới Apps Script:", err);
+    return { inventory: [], usageHistory: [], importHistory: [] };
+  }
 }
 
 export async function saveAllToSheet(
-  inventory: any[],
-  usageHistory: any[],
-  importHistory: any[]
-) {
-  const payload = {
-    inventory,
-    usageHistory,
-    importHistory
-  };
-
-  return new Promise<void>((resolve, reject) => {
-    google.script.run
-      .withSuccessHandler(() => resolve())
-      .withFailureHandler((err: any) => {
-        console.error("Lỗi ghi Sheets:", err);
-        reject(err);
-      })
-      .saveState(payload);
+  inventory: InventoryItem[],
+  usageHistory: UsageRecord[],
+  importHistory: ImportRecord[]
+): Promise<void> {
+  // KHÔNG set Content-Type => trình duyệt tự dùng text/plain (simple request, không preflight)
+  const res = await fetch(`${API_URL}?action=saveAll`, {
+    method: "POST",
+    body: JSON.stringify({ inventory, usageHistory, importHistory }),
   });
+
+  const text = await res.text();
+
+  if (!res.ok) {
+    console.error("Lỗi khi save ALL lên Sheets:", res.status, text);
+    throw new Error(`HTTP ${res.status}: ${text}`);
+  }
+
+  console.log("Đã lưu ALL data lên Sheets:", text);
 }
+
