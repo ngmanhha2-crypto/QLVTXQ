@@ -33,31 +33,46 @@ export default function App() {
 
   const [isSyncing, setIsSyncing] = useState(false);
 
-  // Lần đầu mở app: load từ Google Sheets; nếu trống thì dùng INITIAL_DATA
-  useEffect(() => {
-    (async () => {
-      const data = await loadAllFromSheet();
+  const STATE_SHEET = "STATE";
+const STATE_CELL = "A1";
 
-      let inv = data.inventory;
-      const usage = data.usageHistory || [];
-      const imp = data.importHistory || [];
+export async function loadAllFromSheet() {
+  return new Promise<any>((resolve, reject) => {
+    google.script.run
+      .withSuccessHandler((data: any) => {
+        if (!data || typeof data !== "object") return resolve({});
+        resolve(data);
+      })
+      .withFailureHandler((err: any) => {
+        console.error("Lỗi loadAllFromSheet:", err);
+        resolve({}); // Không reject → app vẫn chạy
+      })
+      .getState();
+  });
+}
 
-      // Nếu inventory trống hoặc load lỗi -> dùng dữ liệu mẫu
-      if (!inv || inv.length === 0) {
-        inv = INITIAL_DATA;
-        // Thử lưu mẫu lên Sheets (nếu lỗi thì chỉ log, không ảnh hưởng UI)
-        try {
-          await saveAllToSheet(inv, usage, imp);
-        } catch (err) {
-          console.error('Không lưu được INITIAL_DATA lên Google Sheets:', err);
-        }
-      }
+export async function saveAllToSheet(
+  inventory: any[],
+  usageHistory: any[],
+  importHistory: any[]
+) {
+  const payload = {
+    inventory,
+    usageHistory,
+    importHistory
+  };
 
-      setInventory(inv);
-      setUsageHistory(usage);
-      setImportHistory(imp);
-    })();
-  }, []);
+  return new Promise<void>((resolve, reject) => {
+    google.script.run
+      .withSuccessHandler(() => resolve())
+      .withFailureHandler((err: any) => {
+        console.error("Lỗi ghi Sheets:", err);
+        reject(err);
+      })
+      .saveState(payload);
+  });
+}
+
 
   // Sync tất cả lên Google Sheets
   const syncToGoogleSheets = async () => {
