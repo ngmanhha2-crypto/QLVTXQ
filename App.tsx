@@ -22,17 +22,7 @@ import {
 
 import { loadAllFromSheet, saveAllToSheet } from './services/sheetService';
 
-// Dữ liệu mẫu ban đầu
-const INITIAL_DATA: InventoryItem[] = [
-  { id: '1', name: 'Phim X-quang 35x43 (Xanh)', category: 'Vật tư y tế', quantity: 150, unit: 'Tấm', minLevel: 200, location: 'Phòng chụp X quang', cost: 50000 },
-  { id: '2', name: 'Phim X-quang 24x30 (Xanh)', category: 'Vật tư y tế', quantity: 320, unit: 'Tấm', minLevel: 100, location: 'Phòng chụp X quang', cost: 40000 },
-  { id: '3', name: 'Thuốc cản quang Omnipaque 300mg', category: 'Thuốc', quantity: 45, unit: 'Lọ', minLevel: 50, location: 'Phòng chụp Cắt lớp vi tính', cost: 850000 },
-  { id: '4', name: 'Giấy in A4 Double A', category: 'Văn phòng phẩm', quantity: 10, unit: 'Ram', minLevel: 5, location: 'Tất cả', cost: 80000 },
-  { id: '5', name: 'Bơm tiêm áp lực cao (CT)', category: 'Vật tư y tế', quantity: 80, unit: 'Cái', minLevel: 100, location: 'Phòng chụp Cắt lớp vi tính', cost: 150000 },
-  { id: '6', name: 'Găng tay y tế vô khuẩn', category: 'Vật tư y tế', quantity: 500, unit: 'Đôi', minLevel: 200, location: 'Tất cả', cost: 3500 },
-  { id: '7', name: 'Bút bi Thiên Long', category: 'Văn phòng phẩm', quantity: 50, unit: 'Cái', minLevel: 20, location: 'Tất cả', cost: 5000 },
-  { id: '8', name: 'Gel siêu âm', category: 'Vật tư y tế', quantity: 5, unit: 'Can 5L', minLevel: 2, location: 'Phòng chụp X quang', cost: 120000 },
-];
+
 
 export default function App() {
   const [currentTab, setCurrentTab] = useState<TabView>('dashboard');
