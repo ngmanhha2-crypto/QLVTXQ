@@ -32,30 +32,29 @@ export default function App() {
   const [isSyncing, setIsSyncing] = useState(false);
 
   // Lần đầu mở app: load từ Google Sheets; nếu trống thì dùng INITIAL_DATA
-  useEffect(() => {
-    (async () => {
+useEffect(() => {
+  (async () => {
+    try {
       const data = await loadAllFromSheet();
 
-      let inv = data.inventory;
+      const inv = data.inventory || [];
       const usage = data.usageHistory || [];
       const imp = data.importHistory || [];
-
-      // Nếu inventory trống hoặc load lỗi -> dùng dữ liệu mẫu
-      if (!inv || inv.length === 0) {
-        inv = INITIAL_DATA;
-        // Thử lưu mẫu lên Sheets (nếu lỗi thì chỉ log, không ảnh hưởng UI)
-        try {
-          await saveAllToSheet(inv, usage, imp);
-        } catch (err) {
-          console.error('Không lưu được INITIAL_DATA lên Google Sheets:', err);
-        }
-      }
 
       setInventory(inv);
       setUsageHistory(usage);
       setImportHistory(imp);
-    })();
-  }, []);
+    } catch (err) {
+      console.error("Lỗi loadAllFromSheet:", err);
+
+      // Nếu lỗi → giữ trống, KHÔNG seed mẫu
+      setInventory([]);
+      setUsageHistory([]);
+      setImportHistory([]);
+    }
+  })();
+}, []);
+
 
   // Sync tất cả lên Google Sheets
   const syncToGoogleSheets = async () => {
