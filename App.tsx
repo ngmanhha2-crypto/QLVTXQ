@@ -19,11 +19,7 @@ import {
   LucideCalendarRange,
   LucideFileChartColumn
 } from 'lucide-react';
-
 import { loadAllFromSheet, saveAllToSheet } from './services/sheetService';
-
-
-
 export default function App() {
   const [currentTab, setCurrentTab] = useState<TabView>('dashboard');
 
@@ -33,45 +29,29 @@ export default function App() {
 
   const [isSyncing, setIsSyncing] = useState(false);
 
-  const STATE_SHEET = "STATE";
-const STATE_CELL = "A1";
+  // Lần đầu mở app: load từ Google Sheets; nếu trống thì dùng INITIAL_DATA
+ useEffect(() => {
+  (async () => {
+    try {
+      const data = await loadAllFromSheet();
 
-export async function loadAllFromSheet() {
-  return new Promise<any>((resolve, reject) => {
-    google.script.run
-      .withSuccessHandler((data: any) => {
-        if (!data || typeof data !== "object") return resolve({});
-        resolve(data);
-      })
-      .withFailureHandler((err: any) => {
-        console.error("Lỗi loadAllFromSheet:", err);
-        resolve({}); // Không reject → app vẫn chạy
-      })
-      .getState();
-  });
-}
+      const inv = data.inventory || [];
+      const usage = data.usageHistory || [];
+      const imp = data.importHistory || [];
 
-export async function saveAllToSheet(
-  inventory: any[],
-  usageHistory: any[],
-  importHistory: any[]
-) {
-  const payload = {
-    inventory,
-    usageHistory,
-    importHistory
-  };
+      setInventory(inv);
+      setUsageHistory(usage);
+      setImportHistory(imp);
+    } catch (err) {
+      console.error("Lỗi loadAllFromSheet:", err);
 
-  return new Promise<void>((resolve, reject) => {
-    google.script.run
-      .withSuccessHandler(() => resolve())
-      .withFailureHandler((err: any) => {
-        console.error("Lỗi ghi Sheets:", err);
-        reject(err);
-      })
-      .saveState(payload);
-  });
-}
+      // Nếu lỗi → giữ trống, KHÔNG seed mẫu
+      setInventory([]);
+      setUsageHistory([]);
+      setImportHistory([]);
+    }
+  })();
+}, []);
 
 
   // Sync tất cả lên Google Sheets
